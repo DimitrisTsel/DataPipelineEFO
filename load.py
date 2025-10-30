@@ -1,31 +1,45 @@
-from sqlalchemy import create_engine, insert, Table, MetaData
-from db.schema import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from db.psql import engine as psql_engine
+from db.psql import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
 
-engine = create_engine('sqlite:///efo.db', echo=False)  # change path or use PostgreSQL if needed
-metadata = MetaData()
+def insert_efo_term(terms, synonyms, parents):
+    # Deduplicate before inserting
+    terms = list({(tid, iri, label) for tid, iri, label in terms})
+    synonyms = list({(tid, syn) for tid, syn in synonyms})
+    parents = list({(child, parent) for child, parent in parents})
 
-def bulk_insert_efo(terms, synonyms, parents):
-    with Session(engine) as session:
-        # Terms
-        stmt_terms = insert(EFO_TERMS).values([
-            {"TERM_ID": tid, "IRI": iri, "LABEL": label} for tid, iri, label in terms
-        ])
-        stmt_terms = stmt_terms.prefix_with("OR IGNORE")  # SQLite: skip duplicates
-        session.execute(stmt_terms)
+    with Session(psql_engine) as session:
+        if terms:
+            stmt_terms = insert(EFO_TERMS).values([
+                {"TERM_ID": tid, "IRI": iri, "LABEL": label} for tid, iri, label in terms
+            ])
+            stmt_terms = stmt_terms.on_conflict_do_update(
+                index_elements=["TERM_ID"],
+                set_={
+                    "IRI": stmt_terms.excluded.IRI,
+                    "LABEL": stmt_terms.excluded.LABEL
+                }
+            )
+            session.execute(stmt_terms)
 
-        # Synonyms
-        stmt_syn = insert(EFO_SYNONYMS).values([
-            {"TERM_ID": tid, "SYNONYM": syn} for tid, syn in synonyms
-        ])
-        stmt_syn = stmt_syn.prefix_with("OR IGNORE")
-        session.execute(stmt_syn)
+        if parents:
+            stmt_parents = insert(EFO_PARENTS).values([
+                {"TERM_ID": child, "PARENT_TERM_ID": parent} for child, parent in parents
+            ]).on_conflict_do_nothing(
+                index_elements=["TERM_ID", "PARENT_TERM_ID"]
+            )
+            session.execute(stmt_parents)
 
-        # Parents
-        stmt_par = insert(EFO_PARENTS).values([
-            {"TERM_ID": child, "PARENT_TERM_ID": parent} for child, parent in parents
-        ])
-        stmt_par = stmt_par.prefix_with("OR IGNORE")
-        session.execute(stmt_par)
+        if synonyms:
+            stmt_synonyms = insert(EFO_SYNONYMS).values([
+                {"TERM_ID": tid, "SYNONYM": syn} for tid, syn in synonyms
+            ]).on_conflict_do_nothing(
+                index_elements=["TERM_ID", "SYNONYM"]
+            )
+            session.execute(stmt_synonyms)
 
         session.commit()
+
+
+    print("EFO terms, synonyms, and parents inserted/updated successfully")

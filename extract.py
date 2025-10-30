@@ -17,7 +17,9 @@ def get_terms(size=100, max_pages=1):
         r.raise_for_status()
         terms = r.json().get('_embedded', {}).get('terms', [])
         dataset.extend(terms)
-        time.sleep(0.1)  
+        time.sleep(0.1)  # be nice to API
+
+        print(f"Fetched page {page + 1}/{total_pages}, total terms: {len(dataset)}")
     return dataset
 
 def EFO_terms(dataset):
@@ -46,6 +48,7 @@ def EFO_terms(dataset):
             r = requests.get(parent_url)
             r.raise_for_status()
             parents = r.json().get('_embedded', {}).get('terms', [])
+            print(f"Term {term_id} has {len(parents)} parents")
             for p in parents:
                 parent_id = p.get('obo_id')
                 if parent_id:
