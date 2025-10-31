@@ -4,7 +4,25 @@ from db.schema import engine as psql_engine
 from db.schema import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
 from datetime import datetime
 
-def insert_efo_term(terms, synonyms, parents):
+def load_efo_term(terms, synonyms, parents):
+    """
+    Inserts or updates EFO terms, synonyms, and parent links into the PostgreSQL database.
+
+    This function implements an incremental load with upsert logic:
+      - EFO terms are updated only if the incoming LOAD_DTM is newer and either the IRI or LABEL changed.
+      - EFO synonyms are updated only if the incoming LOAD_DTM is newer and the synonym changed.
+      - EFO parent links are inserted if not already present (duplicates are skipped).
+
+    Args:
+        terms (List[Tuple[str, str, str]]): List of EFO terms as tuples (TERM_ID, IRI, LABEL).
+        synonyms (List[Tuple[str, str]]): List of EFO synonyms as tuples (TERM_ID, SYNONYM).
+        parents (List[Tuple[str, str]]): List of parent relationships as tuples (TERM_ID, PARENT_TERM_ID).
+
+    Returns:
+        None
+    """
+    
+    print("Inserting/updating EFO terms, synonyms, and parents into the database...")
     # Deduplicate before inserting
     terms = list({(tid, iri, label, datetime.now()) for tid, iri, label in terms})
     synonyms = list({(tid, syn, datetime.now()) for tid, syn in synonyms})

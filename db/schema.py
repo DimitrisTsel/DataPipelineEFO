@@ -15,6 +15,15 @@ with engine.connect() as conn:
 Base = declarative_base()
 
 class EFO_TERMS(Base):
+    """
+    SQLAlchemy model for EFO terms table.
+
+    Attributes:
+        TERM_ID (str): Primary key, unique EFO term identifier.
+        IRI (str): Internationalized Resource Identifier for the term.
+        LABEL (str): Human-readable label of the term.
+        LOAD_DTM (datetime): Timestamp when the term was loaded/updated.
+    """
     __tablename__ = "EFO_TERMS"
 
     TERM_ID = Column(String, primary_key=True, nullable=False)
@@ -23,6 +32,18 @@ class EFO_TERMS(Base):
     LOAD_DTM = Column(DateTime)
 
 class EFO_SYNONYMS(Base):
+    """
+    SQLAlchemy model for EFO synonyms table.
+
+    Attributes:
+        ID (int): Primary key, auto-incremented.
+        TERM_ID (str): Foreign key reference to EFO_TERMS (conceptually).
+        SYNONYM (str): Synonym for the term.
+        LOAD_DTM (datetime): Timestamp when the synonym was loaded/updated.
+
+    Constraints:
+        UniqueConstraint on (TERM_ID, SYNONYM) to prevent duplicate synonyms.
+    """
     __tablename__ = "EFO_SYNONYMS"
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
@@ -36,6 +57,18 @@ class EFO_SYNONYMS(Base):
 
 
 class EFO_PARENTS(Base):
+    """
+    SQLAlchemy model for EFO parent-child relationships table.
+
+    Attributes:
+        ID (int): Primary key, auto-incremented.
+        TERM_ID (str): EFO term ID.
+        PARENT_TERM_ID (str): Parent term ID.
+        LOAD_DTM (datetime): Timestamp when the parent link was loaded.
+
+    Constraints:
+        UniqueConstraint on (TERM_ID, PARENT_TERM_ID) to prevent duplicate parent links.
+    """
     __tablename__ = "EFO_PARENTS"
 
     ID = Column(Integer, primary_key=True, autoincrement=True)

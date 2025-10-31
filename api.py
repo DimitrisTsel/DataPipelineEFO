@@ -1,12 +1,25 @@
-from extract import get_terms, EFO_terms
-from load import  insert_efo_term
+from extract import extract_terms, parse_efo_terms
+from load import  load_efo_term
 from db.schema import init_db
 
-if __name__ == "__main__":
+def run_pipeline():
+    """Run the full EFO data pipeline from extraction to loading.
+
+    Steps:
+        1. Initialize the PostgreSQL database and create tables if they do not exist.
+        2. Extract EFO terms from the Ontology Lookup Service (OLS) API.
+        3. Parse the extracted dataset into separate lists of terms, synonyms, and parent links.
+        4. Load the parsed data into the PostgreSQL tables using a bulk insert/upsert strategy.
+        5. Print confirmation when the pipeline finishes successfully.
+    """
     init_db()
-    dataset = get_terms(size=100, max_pages=10)  # fetch first 2 pages for testing
-    terms, synonyms, parents = EFO_terms(dataset)
-    print(f"Fetched {len(terms)} terms, {len(synonyms)} synonyms, {len(parents)} parent links")
-    # bulk_insert_efo(terms, synonyms, parents)
-    insert_efo_term(terms, synonyms, parents)
-    print("Data inserted into database")
+    dataset = extract_terms(size=100, max_pages=1)
+    terms, synonyms, parents = parse_efo_terms(dataset)
+    print(f"Fetched {len(terms)} terms, {len(synonyms)}" +\
+          f" synonyms, {len(parents)} parent links")
+    load_efo_term(terms, synonyms, parents)
+    print("Pipeline finished successfully.")
+
+
+if __name__ == "__main__":
+    run_pipeline()
