@@ -1,6 +1,6 @@
 from extract import get_terms, EFO_terms
 from load import  insert_efo_term
-from db.psql import init_db
+from db.schema import init_db
 
 if __name__ == "__main__":
     init_db()

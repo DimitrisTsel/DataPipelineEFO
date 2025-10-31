@@ -1,33 +1,48 @@
-from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint, create_engine, text
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
 
 
+engine = create_engine("postgresql+psycopg2://postgres:postgres@localhost:5432/efo_db")
+with engine.connect() as conn:
+    result = conn.execute(text("SELECT version();"))
+    print(result.fetchone())
+    print("Connected to PostgreSQL database")
 
-engine = create_engine('sqlite:///efo.db', echo=True)
-metadata_obj = MetaData()
+Base = declarative_base()
 
-EFO_TERMS = Table(
-    'EFO_TERMS', metadata_obj,
-    Column('ID', Integer, primary_key=True, autoincrement=True),
-    Column('TERM_ID', String, unique=True, nullable=False),
-    Column('IRI', String),
-    Column('LABEL', String)
-)
+class EFO_TERMS(Base):
+    __tablename__ = "EFO_TERMS"
 
-EFO_SYNONYMS = Table(
-    'EFO_SYNONYMS', metadata_obj,
-    Column('ID', Integer, primary_key=True, autoincrement=True),
-    Column('TERM_ID', String, ForeignKey('EFO_TERMS.TERM_ID')),
-    Column('SYNONYM', String, nullable=False)
-)
+    ID = Column(Integer, primary_key=True, autoincrement=True)
+    TERM_ID = Column(String, unique=True, nullable=False)
+    IRI = Column(String)
+    LABEL = Column(String)
 
-EFO_PARENTS = Table(
-    'EFO_PARENTS', metadata_obj,
-    Column('ID', Integer, primary_key=True, autoincrement=True),
-    Column('TERM_ID', String, ForeignKey('EFO_TERMS.TERM_ID')),
-    Column('PARENT_TERM_ID', String, ForeignKey('EFO_TERMS.TERM_ID'))
-)
+class EFO_SYNONYMS(Base):
+    __tablename__ = "EFO_SYNONYMS"
+
+    ID = Column(Integer, primary_key=True, autoincrement=True)
+    TERM_ID = Column(String, nullable=False)  # Removed FK
+    SYNONYM = Column(String, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("TERM_ID", "SYNONYM", name="uq_term_synonym"),
+    )
+
+
+class EFO_PARENTS(Base):
+    __tablename__ = "EFO_PARENTS"
+
+    ID = Column(Integer, primary_key=True, autoincrement=True)
+    TERM_ID = Column(String, nullable=False)  # Removed FK
+    PARENT_TERM_ID = Column(String, nullable=False)  # Removed FK
+
+    __table_args__ = (
+        UniqueConstraint("TERM_ID", "PARENT_TERM_ID", name="uq_parent"),
+    )
 
 def init_db():
-    """Create all tables if they do not exist."""
-    metadata_obj.create_all(engine)
-    print("Database initialized and tables created")
+    """Create all tables in the PostgreSQL database."""
+    Base.metadata.create_all(bind=engine)
+    print("PostgreSQL database initialized and tables created")

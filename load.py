@@ -1,7 +1,7 @@
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
-from db.psql import engine as psql_engine
-from db.psql import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
+from db.schema import engine as psql_engine
+from db.schema import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
 
 def insert_efo_term(terms, synonyms, parents):
     # Deduplicate before inserting

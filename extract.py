@@ -17,7 +17,7 @@ def get_terms(size=100, max_pages=1):
         r.raise_for_status()
         terms = r.json().get('_embedded', {}).get('terms', [])
         dataset.extend(terms)
-        time.sleep(0.1)  # be nice to API
+        time.sleep(0.1)
 
         print(f"Fetched page {page + 1}/{total_pages}, total terms: {len(dataset)}")
     return dataset
