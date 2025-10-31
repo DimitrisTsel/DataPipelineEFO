@@ -27,10 +27,13 @@ def EFO_terms(dataset):
     synonyms_list = []
     parents_list = []
 
+    print("Searching for parents...")
+    
     for term in dataset:
         term_id = term.get('obo_id')
         iri = term.get('iri')
         label = term.get('label')
+        
         if not term_id:
             continue
 
@@ -48,7 +51,6 @@ def EFO_terms(dataset):
             r = requests.get(parent_url)
             r.raise_for_status()
             parents = r.json().get('_embedded', {}).get('terms', [])
-            print(f"Term {term_id} has {len(parents)} parents")
             for p in parents:
                 parent_id = p.get('obo_id')
                 if parent_id:
