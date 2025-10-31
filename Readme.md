@@ -20,7 +20,9 @@ Steps: \
 Setup Python env
 - Create a Python virtual env and execute it -> `python3 -m venv venv` -> `source venv/bin/activate`
 - `pip install -r requirements.txt` \
+
 Setup PostgreSQL:
+
 - `docker pull postgres:15`
 - `docker run --name efo-postgres \
     -e POSTGRES_USER=postgres \
