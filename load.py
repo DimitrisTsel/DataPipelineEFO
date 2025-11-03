@@ -1,7 +1,7 @@
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
-from db.schema import engine as psql_engine
-from db.schema import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
+from db.init_db import engine as psql_engine
+from db.stg_schema import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
 from datetime import datetime
 
 def load_efo_term(terms, synonyms, parents):

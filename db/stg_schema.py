@@ -1,22 +1,13 @@
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, create_engine, text
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import DateTime, UniqueConstraint, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
-
-engine = create_engine("postgresql+psycopg2://postgres:postgres@localhost:5432/efo_db")
-with engine.connect() as conn:
-    try:
-        result = conn.execute(text("SELECT version();"))
-        print(result.fetchone())
-        print("Connected to PostgreSQL database")
-    except Exception as e:
-        print(f"Error connecting to database: {e}")
 
 Base = declarative_base()
 
 class EFO_TERMS(Base):
     """
     EFO terms table.
+    Uses the STG schema.
 
     Attributes:
         TERM_ID (str): Primary key, unique EFO term identifier.
@@ -25,6 +16,7 @@ class EFO_TERMS(Base):
         LOAD_DTM (datetime): Timestamp when the term was loaded/updated.
     """
     __tablename__ = "EFO_TERMS"
+    __table_args__ = {'schema': "stg"}  
 
     TERM_ID = Column(String, primary_key=True, nullable=False)
     IRI = Column(String)
@@ -34,6 +26,7 @@ class EFO_TERMS(Base):
 class EFO_SYNONYMS(Base):
     """
     EFO synonyms table.
+    Uses the STG schema.
 
     Attributes:
         ID (int): Primary key, auto-incremented.
@@ -53,12 +46,14 @@ class EFO_SYNONYMS(Base):
 
     __table_args__ = (
         UniqueConstraint("TERM_ID", "SYNONYM", name="uq_term_synonym"),
+        {'schema': "stg"}
     )
 
 
 class EFO_PARENTS(Base):
     """
     EFO parent-child relationships table.
+    Uses the STG schema.
 
     Attributes:
         ID (int): Primary key, auto-incremented.
@@ -78,9 +73,5 @@ class EFO_PARENTS(Base):
 
     __table_args__ = (
         UniqueConstraint("TERM_ID", "PARENT_TERM_ID", name="uq_parent"),
+        {'schema': "stg"}
     )
-
-def init_db():
-    """Create all tables in the PostgreSQL database."""
-    Base.metadata.create_all(bind=engine)
-    print("PostgreSQL database initialized and tables created")
