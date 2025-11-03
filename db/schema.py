@@ -16,7 +16,7 @@ Base = declarative_base()
 
 class EFO_TERMS(Base):
     """
-    SQLAlchemy model for EFO terms table.
+    EFO terms table.
 
     Attributes:
         TERM_ID (str): Primary key, unique EFO term identifier.
@@ -33,7 +33,7 @@ class EFO_TERMS(Base):
 
 class EFO_SYNONYMS(Base):
     """
-    SQLAlchemy model for EFO synonyms table.
+    EFO synonyms table.
 
     Attributes:
         ID (int): Primary key, auto-incremented.
@@ -58,7 +58,7 @@ class EFO_SYNONYMS(Base):
 
 class EFO_PARENTS(Base):
     """
-    SQLAlchemy model for EFO parent-child relationships table.
+    EFO parent-child relationships table.
 
     Attributes:
         ID (int): Primary key, auto-incremented.

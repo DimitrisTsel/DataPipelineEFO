@@ -72,4 +72,4 @@ def load_efo_term(terms, synonyms, parents):
         session.commit()
 
 
-    print("EFO terms, synonyms, and parents inserted/updated successfully")
+    print("EFO terms, synonyms, and parents inserted/updated to STG.")
