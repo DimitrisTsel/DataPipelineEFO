@@ -7,11 +7,12 @@ Experimental Factor Ontology (EFO) data from the Ontology Lookup Service (OLS) A
 ## The pipeline
 
 1. Initializes the PostgreSQL database and create schemas and tables.
-2. Extracts EFO terms, synonyms, and parent relationships from the Ontology Lookup Service (OLS) API.
+2. Extracts EFO terms, synonyms, and parent relationships from the Ontology Lookup Service (OLS) API 
+   using paginated requests and multithreading.
 3. Parses the extracted dataset into separate lists of terms, synonyms, and parent links.
-4. Loads the parsed data into the staging schema (stg).
+4. Loads the parsed data into the staging schema (stg) in batches.
 5. Transforms and moves valid data from the staging schema (stg) to the normalized ODS schema (ods),
-ensuring referential integrity:
+   ensuring referential integrity:
     - Terms are upserted into ods.terms_ods, updating only if incoming load_dtm is newer.
     - Parent relationships are inserted into ods.parents_ods only if both child and parent terms exist in ods.terms_ods.
     - Synonyms are inserted/updated into ods.synonyms_ods only if the term exists in ods.terms_ods.
