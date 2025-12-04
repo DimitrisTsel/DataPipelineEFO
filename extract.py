@@ -1,14 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
-import time
-import threading
+from load import load_efo_term
 
 BASE_URL = "https://www.ebi.ac.uk/ols4/api/ontologies/efo/terms"
 
 def fetch_pages(page, size):
     """Fetch a single page of EFO terms and store the results in a shared list."""
-
-    print(f"Fetching page {page} in thread: {threading.current_thread().name}")
 
     url = f"{BASE_URL}?page={page}&size={size}"
     r = requests.get(url)
@@ -32,6 +29,7 @@ def extract_terms(size=100, max_pages=1):
     Returns:
         List[dict]: A list of term dictionaries as returned by the EFO API.
     """
+
     first_response = requests.get(f"{BASE_URL}?page=0&size={size}")
     first_response.raise_for_status()
     total_pages = first_response.json()['page']['totalPages']
@@ -52,13 +50,13 @@ def extract_terms(size=100, max_pages=1):
 
 def fetch_parents(term_id, parent_url):
     """Fetch parent terms for a single term."""
-    print(f"Fetching parents for {term_id} in thread: {threading.current_thread().name}")
+
     r = requests.get(parent_url)
     r.raise_for_status()
     parents = r.json().get("_embedded", {}).get("terms", [])
     return term_id, [p.get("obo_id") for p in parents if p.get("obo_id")]
 
-def parse_efo_terms(dataset):
+def parse_efo_terms(dataset, BATCH_SIZE=50):
     """
     Parses raw EFO term data into structured lists of terms, synonyms, and parent relationships.
     Uses multithreading to fetch parent relationships concurrently.
@@ -68,20 +66,21 @@ def parse_efo_terms(dataset):
         - Synonyms: tuples of (term_id, synonym)
         - Parent links: tuples of (term_id, parent_term_id)
 
+    Bulk inserts are performed in batches to optimize database loading.
+        - If the number of terms, synonyms, or parents reaches a batch size,
+          it calls `load_efo_term` to insert them into the database and clears the lists
+
     Args:
         dataset (List[dict]): List of term dictionaries as returned by the EFO API.
-
+        BATCH_SIZE (int, optional): Number of records to batch before loading into the database. Defaults to 50.
+    
     Returns:
-        Tuple[List[Tuple[str, str, str]], List[Tuple[str, str]], List[Tuple[str, str]]]:
-            - terms_list: List of term tuples (term_id, iri, label)
-            - synonyms_list: List of synonym tuples (term_id, synonym)
-            - parents_list: List of parent tuples (term_id, parent_term_id)
+        None
     """
 
     terms_list = []
     synonyms_list = []
     parents_urls = []
-
     print("Searching for parents...")
 
     for term in dataset:
@@ -100,6 +99,13 @@ def parse_efo_terms(dataset):
         parent_link = term.get("_links", {}).get("parents", {}).get("href")
         if parent_link:
             parents_urls.append((term_id, parent_link))
+        
+        if len(terms_list) >= BATCH_SIZE:
+            load_efo_term(terms = terms_list)
+            terms_list.clear()
+        if len(synonyms_list) >= BATCH_SIZE:
+            load_efo_term(synonyms = synonyms_list)
+            synonyms_list.clear()
 
     parents_list = []
     with ThreadPoolExecutor(max_workers=10) as pool:
@@ -111,5 +117,11 @@ def parse_efo_terms(dataset):
             term_id, parent_ids = fut.result()
             for pid in parent_ids:
                 parents_list.append((term_id, pid))
+        
+            if len(parents_list) >= BATCH_SIZE:
+                load_efo_term(parents = parents_list)
+                parents_list.clear()
 
-    return terms_list, synonyms_list, parents_list
+    # Load any remaining records
+    if terms_list or synonyms_list or parents_list:
+        load_efo_term(terms = terms_list, synonyms = synonyms_list, parents = parents_list)

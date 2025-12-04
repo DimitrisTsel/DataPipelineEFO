@@ -4,7 +4,7 @@ from db.init_db import engine as psql_engine
 from db.stg_schema import EFO_TERMS, EFO_SYNONYMS, EFO_PARENTS
 from datetime import datetime
 
-def load_efo_term(terms, synonyms, parents):
+def load_efo_term(**kwargs):
     """
     Inserts or updates EFO terms, synonyms, and parent links into the PostgreSQL database.
 
@@ -13,21 +13,27 @@ def load_efo_term(terms, synonyms, parents):
       - EFO synonyms are updated only if the incoming LOAD_DTM is newer and the synonym changed.
       - EFO parent links are inserted if not already present (duplicates are skipped).
 
-    Args:
-        terms (List[Tuple[str, str, str]]): List of EFO terms as tuples (TERM_ID, IRI, LABEL).
-        synonyms (List[Tuple[str, str]]): List of EFO synonyms as tuples (TERM_ID, SYNONYM).
-        parents (List[Tuple[str, str]]): List of parent relationships as tuples (TERM_ID, PARENT_TERM_ID).
+    Accepts keyword arguments:
+        - terms: List[Tuple[str, str, str]] -> (TERM_ID, IRI, LABEL)
+        - synonyms: List[Tuple[str, str]] -> (TERM_ID, SYNONYM)
+        - parents: List[Tuple[str, str]] -> (TERM_ID, PARENT_TERM_ID)
 
     Returns:
         None
     """
     
-    print("Inserting/updating EFO terms, synonyms, and parents into the database...")
-    # Deduplicate before inserting
-    terms = list({(tid, iri, label, datetime.now()) for tid, iri, label in terms})
-    synonyms = list({(tid, syn, datetime.now()) for tid, syn in synonyms})
-    parents = list({(child, parent, datetime.now()) for child, parent in parents})
+    
+    terms = kwargs.get('terms', [])
+    synonyms = kwargs.get('synonyms', [])
+    parents = kwargs.get('parents', [])
 
+    # Deduplicate before inserting
+    if terms:
+        terms = list({(tid, iri, label, datetime.now()) for tid, iri, label in terms})
+    if synonyms:
+        synonyms = list({(tid, syn, datetime.now()) for tid, syn in synonyms})
+    if parents:
+        parents = list({(child, parent, datetime.now()) for child, parent in parents})
 
     with Session(psql_engine) as session:
         if terms:
@@ -70,6 +76,3 @@ def load_efo_term(terms, synonyms, parents):
             session.execute(stmt_synonyms)
 
         session.commit()
-
-
-    print("EFO terms, synonyms, and parents inserted/updated to STG.")

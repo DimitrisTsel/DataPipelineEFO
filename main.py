@@ -7,9 +7,9 @@ def run_pipeline():
     """Run the full EFO data pipeline from extraction to loading.
 
         1. Initialize the PostgreSQL database and create schemas and tables.
-        2. Extract EFO terms, synonyms, and parent relationships from the Ontology Lookup Service (OLS) API.
+        2. Extract EFO terms, synonyms, and parent relationships from the OLS API using paginated requests and multithreading.
         3. Parse the extracted dataset into separate lists of terms, synonyms, and parent links.
-        4. Load the parsed data into the staging schema (stg).
+        4. Load the parsed data into the staging schema (stg) in batches.
         5. Transform and promote valid data from the staging schema (stg) to the normalized ODS schema (ods),
         ensuring referential integrity:
             - Terms are upserted into ods.terms_ods, updating only if incoming load_dtm is newer.
@@ -20,10 +20,8 @@ def run_pipeline():
 
     init_db()
     dataset = extract_terms(size=100, max_pages=10)
-    terms, synonyms, parents = parse_efo_terms(dataset)
-    print(f"Fetched {len(terms)} terms, {len(synonyms)}" +\
-          f" synonyms, {len(parents)} parent links")
-    load_efo_term(terms, synonyms, parents)
+    parse_efo_terms(dataset, BATCH_SIZE=100)
+    print("All batches of EFO terms, synonyms, and parents inserted/updated to STG.")
     transform_stg_to_ods()
     print("Pipeline finished successfully.")
 
